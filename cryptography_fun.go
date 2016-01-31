@@ -42,10 +42,10 @@ func main() {
     // First the PKCS1 key is placed in x509 ASN.1 DER format then given to the PEM encoding function
     // helpful resource https://golang.org/src/crypto/tls/generate_cert.go?m=text
     derFormat := x509.MarshalPKCS1PrivateKey(privateKey)
-    sampleByte := make([]byte, 3000)
+    privatePem := make([]byte, 3000)
     pemPrivateKey := bytes.NewBuffer(privatePem)
     pemBlock := &pem.Block{Type: "RSA Private Key", Bytes: derFormat}
     pem.Encode(pemPrivateKey, pemBlock)
-    fmt.Println("RSA private key to PEM: ", PemPrivateKey)
+    fmt.Println("RSA private key to PEM: ", pemPrivateKey)
 
 }
