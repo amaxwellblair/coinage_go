@@ -7,6 +7,10 @@ import(
     "reflect"
     "strconv"
     "errors"
+    "crypto/rsa"
+    "crypto/sha256"
+    "crypto/rand"
+    "crypto"
 )
 
 type Transaction struct {
@@ -45,10 +49,30 @@ func (t *Transaction) fieldsInBytes() {
 
 }
 
+
+
 func (i *Input) inputInBytes() ([]byte) {
     var inputBytes []byte
     value := reflect.ValueOf(*i)
     for i := 0; i < value.NumField(); i++ {
+        intermediary := value.Field(i).Interface()
+        switch intermediary.(type) {
+        case string:
+            inputBytes = append(inputBytes, []byte(intermediary.(string))...)
+        case int:
+            intermediateString := strconv.Itoa(intermediary.(int))
+            inputBytes = append(inputBytes, []byte(intermediateString)...)
+        default:
+            panic(errors.New("Encountered an input type that wasn't recognized"))
+        }
+    }
+    return inputBytes
+}
+
+func (i *Input) inputInBytesNoSig() ([]byte) {
+    var inputBytes []byte
+    value := reflect.ValueOf(*i)
+    for i := 0; i < value.NumField()-1; i++ {
         intermediary := value.Field(i).Interface()
         switch intermediary.(type) {
         case string:
@@ -81,8 +105,44 @@ func (o *Output) outputInBytes() ([]byte) {
     return outputBytes
 }
 
+func (t *Transaction) outputsInBytes() ([]byte)  {
+    var allBytes []byte
+    for _, value := range t.Outputs {
+        allBytes = append(allBytes, value.outputInBytes()...)
+    }
+    return allBytes
+}
+
+func (t *Transaction) inputsInBytes() ([]byte) {
+    var allBytes []byte
+    for _, value := range t.Inputs {
+        allBytes = append(allBytes, value.inputInBytes()...)
+    }
+    return allBytes
+}
+
+func (t *Transaction) inputsInBytesNoSig() ([]byte) {
+    var allBytes []byte
+    for _, value := range t.Inputs {
+        allBytes = append(allBytes, value.inputInBytesNoSig()...)
+    }
+    return allBytes
+}
+
 func New() (*Transaction) {
     return new(Transaction)
+}
+
+func (t *Transaction) SignInput(privKey *rsa.PrivateKey, input_index int) {
+    hashBytes := append(t.inputsInBytesNoSig(), t.outputsInBytes()...)
+    shaNew := sha256.New()
+    shaNew.Write(hashBytes)
+    hashedIO := shaNew.Sum(nil)
+    signature, err := rsa.SignPKCS1v15(rand.Reader, privKey, crypto.SHA256, hashedIO)
+    if err != nil {
+        panic(err)
+    }
+    t.Inputs[input_index].Signature = string(signature)
 }
 
 func (t *Transaction) CreateOutput(amount int, address string) (Output) {
