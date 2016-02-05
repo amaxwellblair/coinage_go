@@ -7,6 +7,7 @@ import(
     "crypto/rsa"
     "crypto/rand"
     "crypto"
+    "encoding/hex"
     // "bytes"
 )
 
@@ -110,30 +111,36 @@ func TestTransaction_SignTransaction_DidThePrivateKeyProperlySign(t *testing.T) 
 
     trans.SignInput(ck.PrivateKey, 0)
 
-    if trans.Inputs[0].Signature != string(testSignature) {
+    if trans.Inputs[0].Signature != hex.EncodeToString(testSignature) {
         t.Fatal("The signatures don't match up: ",  trans.Inputs[0].Signature)
     }
 }
 
-func TestTransaction_StampTransaction_MakeSureTheTransactionIsHashedAndTimeStamped(t *testing.T) {
-    // trans := New()
-    // trans.CreateInput("sourcehash", 0, "signature")
-    // trans.CreateOutput(5, "Publickey")
-    // trans.StampTransaction()
-    // if trans.TimeStamp <= 1400000000000 {
-    //     t.Fatal("TimeStamp wasn't properly set")
-    // }
-    //
-    // inputs := trans.Inputs[0].SourceHash + trans.Inputs[0].SourceIndex trans.Input[0].Signature
-    // outputs := trans.Outputs[0].Amount + trans.Outputs[0].Address + trans.TimeStamp
-    //
-    // hashString := inputs + outputs
-    // shaNew := sha256.New()
-    //
-    // var buffer []byte
-    // shaNew.Write(buffer)
-    //
-    // if trans.Hash == "hash"{
-    //     t.Fatal("The hash isn't working properly")
-    // }
+func TestTransaction_HashEntireTransaction_HashesAllOfTheInputsAndOutputsAndTimeStamp(t *testing.T) {
+    trans := New()
+    ck := keygen.NewClarkeKey()
+    trans.CreateOutput(5, "address")
+    trans.CreateInput("sourcehash", 0,  "signature")
+    trans.SignInput(ck.PrivateKey, 0)
+    trans.CreateTimeStamp()
+    trans.HashEntireTransaction()
+
+    if trans.Hash == "" {
+        t.Fatal("The full transaction has been not hashed")
+    }
+}
+
+func TestJsonConvert_ConvertATransactionIntoJson (t *testing.T) {
+    trans := New()
+    ck := keygen.NewClarkeKey()
+    trans.CreateOutput(5, "address")
+    trans.CreateInput("sourcehash", 0,  "signature")
+    trans.SignInput(ck.PrivateKey, 0)
+    trans.CreateTimeStamp()
+    trans.HashEntireTransaction()
+    jsonTransaction := string(JsonConvert(trans))
+    //just to read output
+    if jsonTransaction == "" {
+        t.Fatal("The full transaction is not in JSON: ", jsonTransaction )
+    }
 }

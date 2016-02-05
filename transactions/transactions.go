@@ -1,7 +1,6 @@
 package transactions
 
 import(
-    // "github.com/amaxwellblair/coinage_go/keyGenerator"
     "time"
     // "fmt"
     "reflect"
@@ -11,12 +10,14 @@ import(
     "crypto/sha256"
     "crypto/rand"
     "crypto"
+    "encoding/json"
+    "encoding/hex"
 )
 
 type Transaction struct {
     Inputs []Input
     Outputs []Output
-    TimeStamp float64
+    TimeStamp string
     Hash string
 }
 
@@ -31,6 +32,14 @@ type Output struct {
     Address string
 }
 
+func JsonConvert(trans interface{}) []byte {
+    jsonTransaction, err := json.Marshal(trans)
+    if err != nil {
+        panic(err)
+    }
+    return jsonTransaction
+}
+
 func CreateTime() float64 {
     epochTime, err := time.Parse(time.RFC822, "01 Jan 70 00:00 MST")
     if err != nil {
@@ -41,15 +50,11 @@ func CreateTime() float64 {
     return totalSeconds * 1000
 }
 
-func (t *Transaction) StampTransaction() {
-
+func hashThing(hashBytes []byte) ([]byte) {
+    shaNew := sha256.New()
+    shaNew.Write(hashBytes)
+    return shaNew.Sum(nil)
 }
-
-func (t *Transaction) fieldsInBytes() {
-
-}
-
-
 
 func (i *Input) inputInBytes() ([]byte) {
     var inputBytes []byte
@@ -135,14 +140,12 @@ func New() (*Transaction) {
 
 func (t *Transaction) SignInput(privKey *rsa.PrivateKey, input_index int) {
     hashBytes := append(t.inputsInBytesNoSig(), t.outputsInBytes()...)
-    shaNew := sha256.New()
-    shaNew.Write(hashBytes)
-    hashedIO := shaNew.Sum(nil)
+    hashedIO := hashThing(hashBytes)
     signature, err := rsa.SignPKCS1v15(rand.Reader, privKey, crypto.SHA256, hashedIO)
     if err != nil {
         panic(err)
     }
-    t.Inputs[input_index].Signature = string(signature)
+    t.Inputs[input_index].Signature = hex.EncodeToString(signature)
 }
 
 func (t *Transaction) CreateOutput(amount int, address string) (Output) {
@@ -155,4 +158,12 @@ func (t *Transaction) CreateInput(sourcehash string, sourceindex int, signature 
     return t.Inputs[len(t.Inputs)-1]
 }
 
-// {Amount: amount, Address: address}
+func (t * Transaction) CreateTimeStamp() {
+    t.TimeStamp = strconv.Itoa(int(CreateTime()))
+}
+
+func (t * Transaction) HashEntireTransaction() {
+    byteTime := []byte(t.TimeStamp)
+    transactionByte := append(t.inputsInBytes(), append(t.outputsInBytes(), byteTime...)...)
+    t.Hash = hex.EncodeToString(hashThing(transactionByte))
+}
