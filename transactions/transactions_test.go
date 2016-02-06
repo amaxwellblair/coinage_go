@@ -138,7 +138,7 @@ func TestJsonConvert_ConvertATransactionIntoJson (t *testing.T) {
     trans.SignInput(ck.PrivateKey, 0)
     trans.CreateTimeStamp()
     trans.HashEntireTransaction()
-    jsonTransaction := string(JsonConvert(trans))
+    jsonTransaction := string(trans.JsonConvert())
     //just to read output
     if jsonTransaction == "" {
         t.Fatal("The full transaction is not in JSON: ", jsonTransaction )

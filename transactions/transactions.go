@@ -17,7 +17,7 @@ import(
 type Transaction struct {
     Inputs []Input
     Outputs []Output
-    TimeStamp string
+    TimeStamp int
     Hash string
 }
 
@@ -32,8 +32,8 @@ type Output struct {
     Address string
 }
 
-func JsonConvert(trans interface{}) []byte {
-    jsonTransaction, err := json.Marshal(trans)
+func (t *Transaction) JsonConvert() []byte {
+    jsonTransaction, err := json.Marshal(t)
     if err != nil {
         panic(err)
     }
@@ -159,11 +159,11 @@ func (t *Transaction) CreateInput(sourcehash string, sourceindex int, signature 
 }
 
 func (t * Transaction) CreateTimeStamp() {
-    t.TimeStamp = strconv.Itoa(int(CreateTime()))
+    t.TimeStamp = int(CreateTime())
 }
 
 func (t * Transaction) HashEntireTransaction() {
-    byteTime := []byte(t.TimeStamp)
+    byteTime := []byte(strconv.Itoa(t.TimeStamp))
     transactionByte := append(t.inputsInBytes(), append(t.outputsInBytes(), byteTime...)...)
     t.Hash = hex.EncodeToString(hashThing(transactionByte))
 }
